@@ -1,0 +1,104 @@
+﻿@page "/employee"
+@using global::Employee.Business.Repositories.IRepositories;
+@using global::Employee.Models;
+@inject IEmployeeRepository employeeRepository
+@inject IJSRuntime jsRuntime
+
+
+
+<Employee.WebServer.Pages.Components._DeleteConfirmation IsParentComponentProcessing="IsLoading" ConfirmationChanged="ConfirmDelete_Click"></Employee.WebServer.Pages.Components._DeleteConfirmation>
+<div class="row mt-4">
+    <div class="col-6">
+        <h4 class="card-title text-primary">Employee List</h4>
+    </div>
+    <div class="col-4 offset-2">
+        <a href="employee/create" class="btn btn-primary form-control">Add New Employee</a>
+    </div>
+</div>
+
+<div class="col-12 p-3">
+    @if (Employees.Any())
+    {
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Hire Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var obj in Employees)
+                {
+                    <tr>
+                        <td>@obj.FirstName</td>
+                        <td>@obj.LastName</td>
+                        <td>@obj.Created</td>
+                        
+                        <td>
+                            <NavLink href="@($"employee/edit/{obj.Id}")" class="btn-primary btn">Edit</NavLink>
+                            <button class="btn btn-danger" @onclick="()=>HandleDelete(obj.Id)">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        if (IsLoading)
+        {
+            // loading gif
+            <div class="text-center">
+                <img src="/images/loading2.gif" />
+            </div>
+        }
+        else
+        {
+            // no records
+            <p>No records found.</p>
+        }
+    }
+</div>
+
+@code {
+    private IEnumerable<EmployeeDTO> Employees { get; set; } = new List<EmployeeDTO>();
+    public bool IsLoading { get; set; }
+    private int DeleteId { get; set; } = 0;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Load();
+        }
+    }
+
+    private async Task Load()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        Employees = await employeeRepository.GetAllAsync();
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+    private void HandleDelete(int id)
+    {
+        DeleteId = id;
+        jsRuntime.InvokeVoidAsync("ShowDeleteConfirmationModal");
+    }
+
+    public async Task ConfirmDelete_Click(bool isConfirmed)
+    {
+        IsLoading = true;
+        if (isConfirmed && DeleteId != 0)
+        {
+            await employeeRepository.RemoveAsync(DeleteId);
+            await Load();
+            await jsRuntime.InvokeVoidAsync("HideDeleteConfirmationModal");
+        }
+        IsLoading = false;
+    }
+}

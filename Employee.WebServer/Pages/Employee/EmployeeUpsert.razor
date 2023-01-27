@@ -1,0 +1,106 @@
+﻿@page "/employee/create"
+@page "/employee/edit/{id:int}"
+@using global::Employee.Business.Repositories.IRepositories;
+@using global::Employee.Data.Entities;
+@using global::Employee.Models;
+@inject IEmployeeRepository employeeRepository
+@inject NavigationManager navigationManager
+
+<div class="row my-2">
+    <h3 class="card-title text-primary mb-3 ml-3">@Title Employee</h3>
+
+    <div class="col-10">
+        @if (IsLoading)
+        {
+            <div class="text-center">
+                <img src="/images/loading.gif" />
+            </div>
+        }
+        else
+        {
+
+            <EditForm Model="@Employee" OnValidSubmit="@UpsertObj">
+                <DataAnnotationsValidator />
+                @*<ValidationSummary />*@
+                <div class="row">
+                    <div class="form-group col-4 border p-3 mt-4">
+                        <label>First Name</label>
+                        <InputText @bind-Value="@Employee.FirstName" class="form-control"></InputText>
+                        <ValidationMessage For="()=>Employee.FirstName"></ValidationMessage>
+                        <label>Last Name</label>
+                        <InputText @bind-Value="@Employee.LastName" class="form-control"></InputText>
+                        <ValidationMessage For="()=>Employee.LastName"></ValidationMessage>
+                        <label>Hire Date</label>
+                        <InputDate @bind-Value="@Employee.Created" class="form-control"></InputDate>
+                        <ValidationMessage For="() => Employee.Created"></ValidationMessage>
+                        
+                        
+
+                    </div>
+
+                    
+                    <div class="form-group py-2">
+                        <button class="btn btn-primary">@Title</button>
+                        <NavLink href="employee" class="btn btn-secondary">Back to Index</NavLink>
+                    </div>
+                </div>
+            </EditForm>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private EmployeeDTO Employee { get; set; } = new EmployeeDTO();
+    private string Title { get; set; } = "Create";
+    public bool IsLoading { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (Id == 0)
+            {
+                //create
+                IsLoading = false;
+            }
+            else
+            {
+                //update
+                Title = "Update";
+                await Load();
+            }
+        }
+
+    }
+
+    private async Task Load()
+    {
+        IsLoading = true;
+        StateHasChanged();
+        Employee = await employeeRepository.GetAsync(Id);
+        IsLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task UpsertObj()
+    {
+
+        if (Employee.Id == 0)
+        {
+            //create
+            await employeeRepository.CreateAsync(Employee);
+        }
+        else
+        {
+            //update
+            await employeeRepository.UpdateAsync(Employee);
+        }
+        navigationManager.NavigateTo("employee");
+    }
+
+
+
+}
